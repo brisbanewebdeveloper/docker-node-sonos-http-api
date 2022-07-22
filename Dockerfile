@@ -7,7 +7,8 @@ COPY node-sonos /app
 RUN apk add --no-cache curl && \
   mkdir cache && \
   chown -R node:node static cache && \
-  npm install --production && \
+  npm install -g npm@latest && \
+  npm install --omit=dev && \
   rm -rf /tmp/* /root/.npm
 
 EXPOSE 5005

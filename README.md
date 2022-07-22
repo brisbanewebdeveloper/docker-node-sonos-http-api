@@ -42,3 +42,37 @@ docker run \
 If you want to run in a swarm see an example setup here: https://github.com/pinked/clustered_sonos. The important thing is using the *host* networking interface so that it can discover your Sonos devices.
 
 If you're looking this as part of a bigger home automation piece you might also want to look at [my MQTT hack job](https://github.com/chrisns/sonos-mqtt).
+
+## [Custom] Use AWS Polly (TTS) with the Docker Image having Sonos HTTP API enabled to use the neural engine
+
+### Installation
+
+```
+mkdir clips cache presets
+
+curl https://raw.githubusercontent.com/jishi/node-sonos-http-api/master/presets/example.json > presets/example.json
+
+echo {} > settings.json
+OR
+{
+  "aws": {
+    "credentials": {
+      "region": "ap-southeast-2",
+      "accessKeyId": "EXAMPLE",
+      "secretAccessKey": "ExampleExampleExampleExampleExample"
+    },
+    "name": "Kendra"
+  }
+}
+
+cp docker-compose.example.yml docker-compose.yml
+
+docker-compose up -d
+```
+
+### References
+
+- https://github.com/jishi/node-sonos-http-api#aws-polly
+- https://github.com/jishi/node-sonos-http-api
+- https://www.voicerss.org/personel/
+- https://github.com/chrisns/docker-node-sonos-http-api

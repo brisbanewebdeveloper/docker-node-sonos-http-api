@@ -1,0 +1,27 @@
+version: "3.6"
+services:
+
+  sonos:
+    container_name: sonos
+    image: docker-node-sonos-http-api:aws-polly-engine
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    # network_mode: "bridge"
+    network_mode: "host"
+    # ports:
+    #   - "5005:5005"
+    volumes:
+      - type: bind
+        source: ./settings.json
+        target: /app/settings.json
+      - type: bind
+        source: ./clips
+        target: /app/static/clips
+      - type: bind
+        source: ./cache
+        target: /app/cache
+      - type: bind
+        source: ./presets
+        target: /app/presets
