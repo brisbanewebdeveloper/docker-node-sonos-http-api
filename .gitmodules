@@ -1,4 +1,4 @@
 [submodule "node-sonos"]
 	path = node-sonos
 	url = https://github.com/brisbanewebdeveloper/node-sonos-http-api.git
-  branch = aws-polly-engine
+	branch = aws-polly-engine
