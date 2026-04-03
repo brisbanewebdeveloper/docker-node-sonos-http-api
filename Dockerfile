@@ -8,7 +8,6 @@ ENV ENDPOINT=${ENDPOINT:-http://localhost:5005}
 COPY node-sonos /app
 
 RUN apk add --no-cache curl && \
-  mkdir cache && \
   chown -R node:node static cache && \
   npm install --omit=dev && \
   rm -rf /tmp/* /root/.npm
