@@ -1,0 +1,24 @@
+{
+  "name": "sonos-http-api-mcp-text-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "HTTP MCP sidecar for chat text validation and Sonos speech delegation",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test",
+    "smoke:speak": "node smoke-test-speak.js",
+    "smoke:clip": "node smoke-test-clip.js",
+    "smoke:all": "node smoke-test-all.js"
+  },
+  "dependencies": {
+    "@cfworker/json-schema": "^4.1.1",
+    "@modelcontextprotocol/client": "^2.0.0-alpha.2",
+    "@modelcontextprotocol/node": "^2.0.0-alpha.2",
+    "@modelcontextprotocol/server": "^2.0.0-alpha.2",
+    "zod": "^4.3.6"
+  }
+}
