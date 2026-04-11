@@ -61,6 +61,42 @@ test('validateClipName rejects path traversal', () => {
   assert.throws(() => validateClipName('../secret.mp3'), SonosApiError);
 });
 
+test('createSonosApiClient requests Sonos zones for room discovery', async () => {
+  await withServer((req, res) => {
+    assert.equal(req.url, '/zones');
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.end(JSON.stringify([
+      {
+        uuid: 'zone-1',
+        coordinator: {
+          uuid: 'room-office',
+          roomName: 'Office'
+        },
+        members: []
+      }
+    ]));
+  }, async (baseUrl) => {
+    const client = createSonosApiClient({ baseUrl, timeoutMs: 1000 });
+    const result = await client.listRooms();
+
+    assert.deepEqual(result, {
+      requestPath: '/zones',
+      statusCode: 200,
+      body: [
+        {
+          uuid: 'zone-1',
+          coordinator: {
+            uuid: 'room-office',
+            roomName: 'Office'
+          },
+          members: []
+        }
+      ]
+    });
+  });
+});
+
 test('createSonosApiClient returns parsed JSON responses', async () => {
   await withServer((req, res) => {
     assert.equal(req.url, '/Office/clip/bell.mp3/70');

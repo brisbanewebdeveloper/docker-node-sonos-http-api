@@ -195,6 +195,9 @@ export function createSonosApiClient(options = {}) {
   }
 
   return {
+    async listRooms() {
+      return sendRequest('/zones');
+    },
     async speak(options) {
       const requestPath = buildSpeechRequestPath(options);
       return sendRequest(requestPath);

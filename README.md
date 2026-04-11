@@ -135,11 +135,19 @@ Use process-chat-text on: "  Hello   team  "
 ```
 
 ```text
-Use speak-on-sonos to say "Dinner is ready" in room "Office".
+Use play-sonos-clip to play "doorbell.mp3" in room "Office".
 ```
 
 ```text
-Use play-sonos-clip to play "doorbell.mp3" in room "Office".
+Use list-sonos-rooms to show the available Sonos rooms.
+```
+
+```text
+Use speak-on-sonos to say "Dinner is ready" in room "Bedroom".
+```
+
+```
+Use speak-on-sonos to say "Hello, world." on all Sonos speakers with voice "Amy" at volume 75.
 ```
 
 If you want VS Code to restart MCP servers automatically when configuration changes, add this to your VS Code `settings.json`:
@@ -158,9 +166,10 @@ Environment variables:
 * `SONOS_API_BASE_URL` points the sidecar at the Sonos HTTP API and defaults to `http://127.0.0.1:5005`
 * `SONOS_API_TIMEOUT_MS` overrides the Sonos API request timeout in milliseconds
 
-The sidecar exposes three tools:
+The sidecar exposes four tools:
 
 * `process-chat-text` validates and normalizes one plain UTF-8 string intended for a chat session
+* `list-sonos-rooms` lists the currently discovered Sonos rooms with room and group details that can be reused in later MCP calls
 * `speak-on-sonos` delegates plain-text announcements to the existing Sonos HTTP API for one room, all rooms, or a preset
 * `play-sonos-clip` delegates clip playback to the existing Sonos HTTP API for one room, all rooms, or a preset
 

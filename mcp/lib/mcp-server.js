@@ -19,6 +19,78 @@ const SESSION_HEADER = 'mcp-session-id';
 const EXPOSED_HEADERS = 'Mcp-Session-Id, Mcp-Protocol-Version';
 const TARGET_TYPES = ['room', 'all', 'preset'];
 
+function createRoomDetailsSchema() {
+  return z.object({
+    uuid: z.string(),
+    roomName: z.string(),
+    state: z.string().nullable(),
+    playMode: z.string().nullable(),
+    groupState: z.string().nullable(),
+    coordinatorUuid: z.string().nullable(),
+    zoneUuid: z.string().nullable(),
+    isCoordinator: z.boolean()
+  });
+}
+
+function toNullableString(value) {
+  return typeof value === 'string' && value ? value : null;
+}
+
+function flattenRoomsFromZones(zonesPayload) {
+  if (!Array.isArray(zonesPayload)) {
+    throw new SonosApiError('Sonos API returned an unexpected zones payload.');
+  }
+
+  const roomsByUuid = new Map();
+
+  for (const zone of zonesPayload) {
+    const zoneUuid = toNullableString(zone?.uuid);
+    const coordinatorUuid = toNullableString(zone?.coordinator?.uuid);
+    const players = [];
+
+    if (zone?.coordinator && typeof zone.coordinator === 'object') {
+      players.push({ player: zone.coordinator, isCoordinator: true });
+    }
+
+    if (Array.isArray(zone?.members)) {
+      for (const member of zone.members) {
+        players.push({
+          player: member,
+          isCoordinator: coordinatorUuid !== null && member?.uuid === coordinatorUuid
+        });
+      }
+    }
+
+    for (const entry of players) {
+      const uuid = toNullableString(entry.player?.uuid);
+      const roomName = toNullableString(entry.player?.roomName);
+
+      if (!uuid || !roomName) {
+        continue;
+      }
+
+      const room = {
+        uuid,
+        roomName,
+        state: toNullableString(entry.player?.state),
+        playMode: toNullableString(entry.player?.playMode),
+        groupState: toNullableString(entry.player?.groupState),
+        coordinatorUuid: toNullableString(entry.player?.coordinator) || coordinatorUuid,
+        zoneUuid,
+        isCoordinator: Boolean(entry.isCoordinator)
+      };
+
+      const existingRoom = roomsByUuid.get(uuid);
+
+      if (!existingRoom || (!existingRoom.isCoordinator && room.isCoordinator)) {
+        roomsByUuid.set(uuid, room);
+      }
+    }
+  }
+
+  return Array.from(roomsByUuid.values()).sort((left, right) => left.roomName.localeCompare(right.roomName));
+}
+
 function buildToolError(error, fallbackMessage) {
   const message = error instanceof ChatTextValidationError || error instanceof SonosApiError
     ? error.message
@@ -115,7 +187,49 @@ function createTextProcessingServer(options = {}) {
       version: '1.0.0'
     },
     {
-      instructions: 'Use process-chat-text with a single plain UTF-8 string intended for a chat session. Use speak-on-sonos or play-sonos-clip to delegate announcements and clip playback to the Sonos HTTP API.'
+      instructions: 'Use process-chat-text with a single plain UTF-8 string intended for a chat session. Use list-sonos-rooms to discover available rooms before calling speak-on-sonos or play-sonos-clip when the room name is unknown.'
+    }
+  );
+
+  server.registerTool(
+    'list-sonos-rooms',
+    {
+      title: 'List Sonos rooms',
+      description: 'List the available Sonos rooms discovered by the Sonos HTTP API.',
+      inputSchema: z.object({}),
+      outputSchema: z.object({
+        action: z.literal('list-sonos-rooms'),
+        requestPath: z.string(),
+        statusCode: z.number().int(),
+        rooms: z.array(createRoomDetailsSchema())
+      }),
+      annotations: {
+        readOnlyHint: true,
+        idempotentHint: true
+      }
+    },
+    async () => {
+      try {
+        const result = await sonosClient.listRooms();
+        const rooms = flattenRoomsFromZones(result.body);
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Found ${rooms.length} Sonos rooms.`
+            }
+          ],
+          structuredContent: {
+            action: 'list-sonos-rooms',
+            requestPath: result.requestPath,
+            statusCode: result.statusCode,
+            rooms
+          }
+        };
+      } catch (error) {
+        return buildToolError(error, 'Unable to list Sonos rooms.');
+      }
     }
   );
 

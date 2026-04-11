@@ -54,8 +54,76 @@ test('MCP server exposes the text-processing tool', async () => {
 
     assert.deepEqual(
       response.tools.map((tool) => tool.name).sort(),
-      ['play-sonos-clip', 'process-chat-text', 'speak-on-sonos']
+      ['list-sonos-rooms', 'play-sonos-clip', 'process-chat-text', 'speak-on-sonos']
     );
+  });
+});
+
+test('MCP server lists flattened Sonos room details', async () => {
+  await withServer((req, res) => {
+    assert.equal(req.url, '/zones');
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.end(JSON.stringify([
+      {
+        uuid: 'zone-1',
+        coordinator: {
+          uuid: 'room-office',
+          state: 'PLAYING',
+          playMode: 'NORMAL',
+          roomName: 'Office',
+          coordinator: 'room-office',
+          groupState: 'PLAYING'
+        },
+        members: [
+          {
+            uuid: 'room-kitchen',
+            state: 'PLAYING',
+            playMode: 'NORMAL',
+            roomName: 'Kitchen',
+            coordinator: 'room-office',
+            groupState: 'PLAYING'
+          }
+        ]
+      }
+    ]));
+  }, async ({ url }) => {
+    await withClient({ sonosApiBaseUrl: url }, async (client) => {
+      const result = await client.callTool({
+        name: 'list-sonos-rooms',
+        arguments: {}
+      });
+
+      assert.notEqual(result.isError, true);
+      assert.deepEqual(result.content, [{ type: 'text', text: 'Found 2 Sonos rooms.' }]);
+      assert.deepEqual(result.structuredContent, {
+        action: 'list-sonos-rooms',
+        requestPath: '/zones',
+        statusCode: 200,
+        rooms: [
+          {
+            uuid: 'room-kitchen',
+            roomName: 'Kitchen',
+            state: 'PLAYING',
+            playMode: 'NORMAL',
+            groupState: 'PLAYING',
+            coordinatorUuid: 'room-office',
+            zoneUuid: 'zone-1',
+            isCoordinator: false
+          },
+          {
+            uuid: 'room-office',
+            roomName: 'Office',
+            state: 'PLAYING',
+            playMode: 'NORMAL',
+            groupState: 'PLAYING',
+            coordinatorUuid: 'room-office',
+            zoneUuid: 'zone-1',
+            isCoordinator: true
+          }
+        ]
+      });
+    });
   });
 });
 
@@ -91,6 +159,26 @@ test('MCP server rejects structured payload text', async () => {
     assert.equal(result.isError, true);
     assert.equal(result.content[0].type, 'text');
     assert.match(result.content[0].text, /simple plain text/);
+  });
+});
+
+test('MCP server surfaces room discovery errors from the Sonos API', async () => {
+  await withServer((req, res) => {
+    assert.equal(req.url, '/zones');
+    res.statusCode = 500;
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.end(JSON.stringify({ error: 'No system discovered' }));
+  }, async ({ url }) => {
+    await withClient({ sonosApiBaseUrl: url }, async (client) => {
+      const result = await client.callTool({
+        name: 'list-sonos-rooms',
+        arguments: {}
+      });
+
+      assert.equal(result.isError, true);
+      assert.equal(result.content[0].type, 'text');
+      assert.match(result.content[0].text, /No system discovered/);
+    });
   });
 });
 
@@ -146,6 +234,30 @@ test('MCP server rejects preset speech volume overrides', async () => {
     assert.equal(result.isError, true);
     assert.equal(result.content[0].type, 'text');
     assert.match(result.content[0].text, /Preset speech does not support a custom volume/);
+  });
+});
+
+test('MCP server surfaces missing room errors from the Sonos API', async () => {
+  await withServer((req, res) => {
+    assert.equal(req.url, '/Office/say/Dinner%20is%20ready');
+    res.statusCode = 404;
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.end(JSON.stringify({ status: 'error', error: "Player 'Office' not found." }));
+  }, async ({ url }) => {
+    await withClient({ sonosApiBaseUrl: url }, async (client) => {
+      const result = await client.callTool({
+        name: 'speak-on-sonos',
+        arguments: {
+          targetType: 'room',
+          target: 'Office',
+          text: 'Dinner is ready'
+        }
+      });
+
+      assert.equal(result.isError, true);
+      assert.equal(result.content[0].type, 'text');
+      assert.match(result.content[0].text, /Player 'Office' not found/);
+    });
   });
 });
 
