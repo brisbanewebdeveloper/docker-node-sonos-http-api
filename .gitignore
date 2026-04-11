@@ -1,4 +1,6 @@
-*
-!.gitignore
-!docker-compose.example.yml
-!readme.md
+.history/
+cache/
+clips/
+.env
+docker-compose.yml
+settings.json
