@@ -40,6 +40,40 @@ If you want to run in a swarm see an example setup here: https://github.com/pink
 
 If you're looking this as part of a bigger home automation piece you might also want to look at [my MQTT hack job](https://github.com/chrisns/sonos-mqtt).
 
+## Updating the `node-sonos` submodule
+
+This repository tracks `node-sonos/` as a Git submodule. If you change files inside `node-sonos/`, you need two commits:
+
+1. A commit in the `node-sonos` repository itself
+2. A commit in this repository that updates the recorded submodule pointer
+
+Commit and push the submodule first:
+
+```bash
+cd node-sonos
+git status
+git add --all
+git commit -m "Describe the node-sonos change"
+```
+
+If `git status` shows a detached `HEAD`, create or switch to a branch before committing:
+
+```bash
+cd node-sonos
+git switch -c your-branch-name
+```
+
+Then commit the updated submodule reference in the parent repository:
+
+```bash
+cd ..
+git add node-sonos
+git commit -m "Update node-sonos submodule"
+git push
+```
+
+If the `node-sonos` commit was already pushed earlier, you can skip the submodule `git push` and only commit the updated `node-sonos` pointer in the parent repository.
+
 ## [Custom] Use AWS Polly (TTS) with the Docker Image having Sonos HTTP API enabled to use the neural engine
 
 ### Installation
