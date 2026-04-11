@@ -1,0 +1,8 @@
+#!/bin/bash
+
+BASEPATH="$1"
+if [[ -z "$BASEPATH" ]]; then
+  BASEPATH=$(dirname "$0")
+fi
+
+cd "$BASEPATH" && docker compose down && docker compose up -d --remove-orphans && docker compose logs -f
